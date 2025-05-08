@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app import crud, schemas, security
+from app import crud, schemas, security, tasks
 from app.database import get_db
 
 router = APIRouter(tags=["Transactions"], prefix="/transactions")
@@ -13,7 +13,10 @@ async def create_transaction(transaction: schemas.TransactionCreate, db: Session
         raise HTTPException(status_code=400, detail="Transaction ID already exists")
 
     crud.create_transaction(db, transaction.dict())
-    return {"message": "Transaction received"}
+
+    task = tasks.update_statistics.delay()
+
+    return {"message": "Transaction received", "task_id": task.id}
 
 
 @router.delete("/", response_model=dict)
